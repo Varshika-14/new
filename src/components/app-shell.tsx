@@ -15,6 +15,10 @@ const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/eligibility", label: "Eligibility Checker", icon: Sparkles },
   { to: "/opportunities", label: "Opportunities", icon: Compass },
+<<<<<<< HEAD
+=======
+  { to: "/trusted-browser", label: "Trusted Browser", icon: ShieldCheck },
+>>>>>>> origin/tej-code
   { to: "/notifications", label: "Notifications", icon: Bell },
   { to: "/admin", label: "Admin Panel", icon: Settings2 },
 ] as const;

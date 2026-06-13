@@ -30,7 +30,29 @@ function Explorer() {
   const [category, setCategory] = useState<string>(search.category ?? "All");
   const [state, setState] = useState<string>(search.state ?? "All India");
 
-  const handleSearch = () => {
+  const handleNotify = async (title: string) => {
+    const userStr = localStorage.getItem("user");
+    if (!userStr) {
+      alert("Please log in to receive notifications");
+      return;
+    }
+    const user = JSON.parse(userStr);
+    
+    await window.fetch("/api/send-email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: user.email,
+        message: `New opportunity available: ${title}`,
+      }),
+    });
+    
+    alert("Notification sent to your email!");
+  };
+
+  const results = useMemo(() => {
     const query = q.toLowerCase();
     const filtered = opportunitiesDataset.filter((item) => {
       const matchesQuery = 
@@ -44,9 +66,7 @@ function Explorer() {
     });
 
     return filtered.length ? filtered : opportunitiesDataset;
-  };
-
-  const results = useMemo(() => handleSearch(), [q, category]);
+  }, [q, category]);
 
   return (
     <AppShell>
@@ -91,14 +111,22 @@ function Explorer() {
                 {r.benefit}
               </p>
 
-              <a
-                href={r.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 mt-4 text-blue-600 hover:underline font-medium text-sm"
-              >
-                <ExternalLink className="size-4" /> Apply Now
-              </a>
+              <div className="flex gap-2 mt-4">
+                <a
+                  href={r.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-blue-600 hover:underline font-medium text-sm"
+                >
+                  <ExternalLink className="size-4" /> Apply Now
+                </a>
+                <button
+                  onClick={() => handleNotify(r.title)}
+                  className="inline-flex items-center gap-1 text-primary hover:underline font-medium text-sm"
+                >
+                  🔔 Notify Me
+                </button>
+              </div>
             </div>
           ))}
           {results.length === 0 && (

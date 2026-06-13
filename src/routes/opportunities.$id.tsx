@@ -67,6 +67,12 @@ function Detail() {
             >
               Apply on official portal <ExternalLink className="size-4" />
             </a>
+<<<<<<< HEAD
+=======
+            <Link to="/trusted-browser" search={{ q: op.officialUrl }} className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-border font-bold hover:bg-muted">
+              <ShieldCheck className="size-4" /> Verify link
+            </Link>
+>>>>>>> origin/tej-code
           </div>
         </header>
 

@@ -1,6 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+<<<<<<< HEAD
 import { expandQuery, getCategoryQueries, getStateQueries } from "@/lib/ai/queryExpander";
+=======
+>>>>>>> origin/tej-code
 
 export type SearchResult = {
   title: string;
@@ -9,6 +12,7 @@ export type SearchResult = {
   rank: number;
 };
 
+<<<<<<< HEAD
 const searchInputSchema = z.object({
   query: z.string().optional(),
   category: z.string().optional(),
@@ -25,6 +29,9 @@ function isValidGovLink(url: string): boolean {
     url.startsWith("https")
   );
 }
+=======
+const searchInputSchema = z.object({ query: z.string().min(1, "Please enter a search query.") });
+>>>>>>> origin/tej-code
 
 export const searchGoogle = createServerFn({ method: "POST" })
   .validator(searchInputSchema)
@@ -34,6 +41,7 @@ export const searchGoogle = createServerFn({ method: "POST" })
     if (!apiKey || !engineId) {
       throw new Error("Google Search API credentials are not configured.");
     }
+<<<<<<< HEAD
 
     // Generate expanded queries based on input
     let queries: string[] = [];
@@ -112,4 +120,34 @@ export const searchGoogle = createServerFn({ method: "POST" })
       .slice(0, 50); // Return up to 50 results
 
     return rankedResults;
+=======
+    const query = encodeURIComponent(data.query.trim());
+    const url = `https://www.googleapis.com/customsearch/v1?key=${encodeURIComponent(apiKey)}&cx=${encodeURIComponent(engineId)}&q=${query}&num=10`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "content-type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.error("Google Search API failure", errorBody);
+      throw new Error("Unable to fetch search results.");
+    }
+
+    const payload = await response.json();
+    const items = Array.isArray(payload.items) ? payload.items : [];
+
+    return items
+      .slice(0, 10)
+      .map((item: any, index: number) => ({
+        title: item.title || item.htmlTitle || "Unknown result",
+        link: String(item.link || item.formattedUrl || ""),
+        snippet: String(item.snippet || item.htmlSnippet || ""),
+        rank: index + 1,
+      }))
+      .filter((item) => item.link);
+>>>>>>> origin/tej-code
   });

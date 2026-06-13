@@ -6,7 +6,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+<<<<<<< HEAD
 import { eligibilityProfileSchema, type EligibilityProfile, type SchemeRecommendation } from "@/shared/types";
+=======
+import { eligibilityProfileSchema, type EligibilityProfile, type EligibilityOpportunity } from "@/shared/types";
+>>>>>>> origin/tej-code
 
 export const Route = createFileRoute("/eligibility")({
   head: () => ({ meta: [{ title: "AI Eligibility Checker — AshaAI" }] }),
@@ -34,7 +38,11 @@ const educationOptions = ["School", "Undergraduate", "Graduate", "Postgraduate"]
 const categoryOptions = ["General", "OBC", "SC", "ST", "EWS"];
 
 function EligibilityPage() {
+<<<<<<< HEAD
   const [analysis, setAnalysis] = useState<{ schemes: SchemeRecommendation[]; explanation: string; matchScore: number } | null>(null);
+=======
+  const [analysis, setAnalysis] = useState<{ opportunities: EligibilityOpportunity[]; explanation: string; matchScore: number } | null>(null);
+>>>>>>> origin/tej-code
   const [isLoading, setIsLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -51,6 +59,7 @@ function EligibilityPage() {
 
     try {
       const token = localStorage.getItem("idToken");
+<<<<<<< HEAD
       const response = await window.fetch("/api/eligibility", {
         method: "POST",
         headers: {
@@ -59,6 +68,20 @@ function EligibilityPage() {
         },
         body: JSON.stringify({ profile: values }),
       });
+=======
+      const response = await window.fetch(
+        "http://localhost:4000/api/eligibility",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          credentials: "include",
+          body: JSON.stringify({ profile: values }),
+        }
+      );
+>>>>>>> origin/tej-code
       const result = await response.json();
       if (!response.ok) {
         throw new Error(result.error || "Unable to analyse eligibility right now.");
@@ -196,18 +219,30 @@ function EligibilityPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
+<<<<<<< HEAD
               {analysis.schemes.map((scheme) => (
                 <div key={scheme.name} className="rounded-3xl border border-border bg-card p-6 shadow-sm">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{scheme.name}</p>
+=======
+              {analysis.opportunities.map((scheme) => (
+                <div key={scheme.schemeName} className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{scheme.schemeName}</p>
+>>>>>>> origin/tej-code
                       <h3 className="mt-2 text-xl font-semibold">{scheme.benefitAmount}</h3>
                     </div>
                     <div className="rounded-full bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">{scheme.matchScore}%</div>
                   </div>
                   <p className="mt-4 text-sm text-muted-foreground leading-6">{scheme.whyEligible}</p>
                   <a
+<<<<<<< HEAD
                     href={scheme.applyUrl}
+=======
+                    href={scheme.officialApplyLink}
+>>>>>>> origin/tej-code
                     target="_blank"
                     rel="noreferrer noopener"
                     className="mt-6 inline-flex items-center justify-center rounded-2xl bg-foreground px-4 py-3 text-sm font-semibold text-background"

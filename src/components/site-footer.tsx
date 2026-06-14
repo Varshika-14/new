@@ -21,6 +21,7 @@ export function SiteFooter() {
             <ul className="space-y-4 text-sm">
               <li><Link to="/opportunities" className="hover:text-accent transition-colors">Opportunities</Link></li>
               <li><Link to="/eligibility" className="hover:text-accent transition-colors">Eligibility</Link></li>
+              <li><Link to="/trusted-browser" className="hover:text-accent transition-colors">Trusted Browser</Link></li>
             </ul>
           </div>
           <div>

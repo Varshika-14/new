@@ -13,6 +13,7 @@ export function SiteHeader() {
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
           <Link to="/opportunities" className="hover:text-foreground transition-colors">Opportunities</Link>
           <Link to="/eligibility" className="hover:text-foreground transition-colors">Eligibility</Link>
+          <Link to="/trusted-browser" className="hover:text-foreground transition-colors">Trusted Browser</Link>
           <Link to="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
         </div>
         <div className="flex items-center gap-3">

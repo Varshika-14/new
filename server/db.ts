@@ -1,17 +1,21 @@
 import { MongoClient, Db } from "mongodb";
 
 const uri = process.env.MONGODB_URI;
-if (!uri) {
-  throw new Error("MONGODB_URI must be set for the backend server.");
-}
-
-const client = new MongoClient(uri);
+const client = uri ? new MongoClient(uri) : null;
 let db: Db | null = null;
 
 export async function getDb(): Promise<Db> {
   if (!db) {
-    await client.connect();
-    db = client.db(process.env.MONGODB_DB_NAME || "ashaai");
+    if (!client) {
+      throw new Error("MongoDB not configured. Set MONGODB_URI in .env");
+    }
+    try {
+      await client.connect();
+      db = client.db(process.env.MONGODB_DB_NAME || "ashaai");
+    } catch (error) {
+      console.error("MongoDB connection failed:", error);
+      throw new Error("Failed to connect to MongoDB. Check your network and MONGODB_URI.");
+    }
   }
   return db;
 }

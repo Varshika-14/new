@@ -46,7 +46,7 @@ export const opportunities: Opportunity[] = [
     category: "Fellowships",
     benefit: "₹80,000 / month",
     benefitDetail: "Monthly stipend up to ₹80,000 + ₹2L annual research grant for 5 years.",
-    deadline: "2025-03-31",
+    deadline: "2026-03-31",
     match: 94,
     eligibility: [
       "B.Tech / M.Tech / MSc final year or completed",
@@ -85,7 +85,7 @@ export const opportunities: Opportunity[] = [
     category: "Scholarships",
     benefit: "Up to ₹45,000 / year",
     benefitDetail: "Tuition fees + maintenance allowance for SC students pursuing post-matric studies.",
-    deadline: "2025-02-15",
+    deadline: "2026-02-15",
     match: 88,
     eligibility: [
       "SC category, Indian citizen",
@@ -148,7 +148,7 @@ export const opportunities: Opportunity[] = [
     category: "Women Empowerment",
     benefit: "75% subsidy on equipment",
     benefitDetail: "Subsidy + 2-month training stipend for women artisans setting up coir spinning units.",
-    deadline: "2025-04-30",
+    deadline: "2026-04-30",
     match: 71,
     eligibility: ["Indian woman aged 18+", "Coir-producing state resident"],
     documents: ["Aadhaar", "Bank passbook", "Residence proof"],
@@ -173,7 +173,7 @@ export const opportunities: Opportunity[] = [
     category: "Skill Development",
     benefit: "Free certification + ₹8,000 reward",
     benefitDetail: "Free short-term training, post-placement support and monetary reward on certification.",
-    deadline: "2025-06-30",
+    deadline: "2026-06-30",
     match: 82,
     eligibility: ["Indian citizen aged 15–45", "School dropout or unemployed youth"],
     documents: ["Aadhaar", "Bank account", "Education proof (if any)"],
@@ -224,7 +224,7 @@ export const opportunities: Opportunity[] = [
     category: "Scholarships",
     benefit: "₹80,000 / year",
     benefitDetail: "Scholarship for students pursuing basic & natural sciences at B.Sc/M.Sc level.",
-    deadline: "2025-10-15",
+    deadline: "2026-10-15",
     match: 85,
     eligibility: [
       "Top 1% in 12th board exams",
@@ -254,7 +254,7 @@ export const opportunities: Opportunity[] = [
     category: "Fellowships",
     benefit: "₹31,000 / month",
     benefitDetail: "Junior Research Fellowship for NET qualified candidates pursuing PhD/NET.",
-    deadline: "2025-06-30",
+    deadline: "2026-06-30",
     match: 80,
     eligibility: [
       "Qualified UGC NET",
@@ -345,7 +345,7 @@ export const opportunities: Opportunity[] = [
     category: "Housing Schemes",
     benefit: "₹2.67 Lakh subsidy",
     benefitDetail: "Interest subsidy on home loans for EWS/LIG/MIG categories.",
-    deadline: "2025-12-31",
+    deadline: "2026-12-31",
     match: 78,
     eligibility: [
       "EWS/LIG/MIG category",
@@ -467,7 +467,7 @@ export const opportunities: Opportunity[] = [
     category: "Jobs",
     benefit: "₹40,000+ / month",
     benefitDetail: "Bank PO job with SBI with career growth opportunities.",
-    deadline: "2025-04-30",
+    deadline: "2026-04-30",
     match: 72,
     eligibility: [
       "Graduate in any discipline",
@@ -497,7 +497,7 @@ export const opportunities: Opportunity[] = [
     category: "Research Grants",
     benefit: "Up to ₹50 Lakh",
     benefitDetail: "Research grant for faculty in basic sciences for equipment and consumables.",
-    deadline: "2025-08-31",
+    deadline: "2026-08-31",
     match: 68,
     eligibility: [
       "Faculty in basic sciences",

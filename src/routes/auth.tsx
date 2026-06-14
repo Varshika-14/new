@@ -42,6 +42,19 @@ function AuthPage() {
       }));
       localStorage.setItem("idToken", token);
       console.log("User:", result.user);
+
+      // Send welcome email
+      await window.fetch("http://localhost:4000/api/send-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: result.user.email,
+          message: "Welcome to AshaAI!",
+        }),
+      });
+
       navigate({ to: "/dashboard" });
     } catch (error) {
       console.error(error);

@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
-import { notifications, categories } from "@/lib/mock-data";
-import { Bell, ArrowRight, TrendingUp } from "lucide-react";
+import { notifications, categories, opportunities } from "@/lib/mock-data";
+import { Bell, ArrowRight, TrendingUp, Briefcase, Clock, Star } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — AshaAI" }] }),
@@ -11,7 +11,18 @@ export const Route = createFileRoute("/dashboard")({
 
 function Dashboard() {
   const [userName, setUserName] = useState("Citizen");
-  const [dashboardOpportunities, setDashboardOpportunities] = useState(() => []);
+  const [dashboardOpportunities, setDashboardOpportunities] = useState<typeof opportunities>(() => {
+    // Load recommended opportunities from localStorage if available
+    const saved = localStorage.getItem("recommendedOpportunities");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  });
 
   useEffect(() => {
     const saved = localStorage.getItem("user");
@@ -45,7 +56,13 @@ function Dashboard() {
 
   const top = dashboardOpportunities.length
     ? dashboardOpportunities.slice(0, 3)
-    : [];
+    : opportunities.slice(0, 3);
+
+  // Calculate stats
+  const totalOpportunities = opportunities.length;
+  const newThisWeek = Math.floor(totalOpportunities * 0.15); // Simulated
+  const closingSoon = opportunities.filter(o => o.deadline !== "Rolling").length;
+  const recommended = opportunities.filter(o => o.match >= 80).length;
 
   return (
     <AppShell>
@@ -62,6 +79,42 @@ function Dashboard() {
             Re-run Eligibility
           </Link>
         </header>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="rounded-2xl bg-card ring-1 ring-black/5 p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <Briefcase className="size-4 text-primary" />
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Total</p>
+            </div>
+            <p className="text-2xl font-bold">{totalOpportunities}</p>
+            <p className="text-xs text-muted-foreground mt-1">Opportunities</p>
+          </div>
+          <div className="rounded-2xl bg-card ring-1 ring-black/5 p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="size-4 text-green-600" />
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">New</p>
+            </div>
+            <p className="text-2xl font-bold">{newThisWeek}</p>
+            <p className="text-xs text-muted-foreground mt-1">This Week</p>
+          </div>
+          <div className="rounded-2xl bg-card ring-1 ring-black/5 p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="size-4 text-orange-600" />
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Closing</p>
+            </div>
+            <p className="text-2xl font-bold">{closingSoon}</p>
+            <p className="text-xs text-muted-foreground mt-1">Soon</p>
+          </div>
+          <div className="rounded-2xl bg-card ring-1 ring-black/5 p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <Star className="size-4 text-primary" />
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Recommended</p>
+            </div>
+            <p className="text-2xl font-bold">{recommended}</p>
+            <p className="text-xs text-muted-foreground mt-1">For You</p>
+          </div>
+        </div>
 
         {/* Score + notifs */}
         <div className="grid lg:grid-cols-3 gap-6">

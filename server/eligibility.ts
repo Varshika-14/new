@@ -14,25 +14,25 @@ export const eligibilitySchema = z.object({
 
 const fallbackOpportunities: EligibilityOpportunity[] = [
   {
-    name: "National Scholarship Support",
-    benefitAmount: "₹35,000",
-    eligibilityReason: "Your education level and income profile match central scholarship support criteria.",
-    applyUrl: "https://scholarships.gov.in",
+    schemeName: "National Scholarship Support",
     matchScore: 92,
+    benefitAmount: "₹35,000",
+    whyEligible: "Your education level and income profile match central scholarship support criteria.",
+    officialApplyLink: "https://scholarships.gov.in",
   },
   {
-    name: "PM Internship Fellowship",
-    benefitAmount: "₹12,000 / month",
-    eligibilityReason: "Your profile matches technical internship and youth training programs.",
-    applyUrl: "https://pminternship.mca.gov.in",
+    schemeName: "PM Internship Fellowship",
     matchScore: 88,
+    benefitAmount: "₹12,000 / month",
+    whyEligible: "Your profile matches technical internship and youth training programs.",
+    officialApplyLink: "https://pminternship.mca.gov.in",
   },
   {
-    name: "Skill India Stipend",
-    benefitAmount: "₹8,000 / month",
-    eligibilityReason: "Your income and education fit youth skilling program support.",
-    applyUrl: "https://skillindia.gov.in",
+    schemeName: "Skill India Stipend",
     matchScore: 81,
+    benefitAmount: "₹8,000 / month",
+    whyEligible: "Your income and education fit youth skilling program support.",
+    officialApplyLink: "https://skillindia.gov.in",
   },
 ];
 
@@ -43,14 +43,14 @@ function normalizeOpportunities(items: unknown): EligibilityOpportunity[] {
     .map((item) => {
       const candidate = item as any;
       return {
-        name: String(candidate.name ?? "Untitled Opportunity"),
-        benefitAmount: String(candidate.benefitAmount ?? "₹0"),
-        eligibilityReason: String(candidate.eligibilityReason ?? candidate.whyEligible ?? "This opportunity matches your profile."),
-        applyUrl: String(candidate.applyUrl ?? "https://scholarships.gov.in"),
+        schemeName: String(candidate.schemeName ?? candidate.name ?? "Untitled Opportunity"),
         matchScore: Number(candidate.matchScore ?? 75),
+        benefitAmount: String(candidate.benefitAmount ?? "₹0"),
+        whyEligible: String(candidate.whyEligible ?? candidate.eligibilityReason ?? "This opportunity matches your profile."),
+        officialApplyLink: String(candidate.officialApplyLink ?? candidate.applyUrl ?? "https://scholarships.gov.in"),
       };
     })
-    .filter((item) => item.name && item.applyUrl);
+    .filter((item) => item.schemeName && item.officialApplyLink);
 }
 
 export async function analyzeEligibility(profile: EligibilityProfile, userId?: string): Promise<EligibilityAnalysis> {
@@ -70,11 +70,11 @@ Return only valid JSON:
 {
   "opportunities": [
     {
-      "name": "",
+      "schemeName": "",
+      "matchScore": 0,
       "benefitAmount": "",
-      "eligibilityReason": "",
-      "applyUrl": "",
-      "matchScore": 0
+      "whyEligible": "",
+      "officialApplyLink": ""
     }
   ],
   "explanation": "",
@@ -85,6 +85,7 @@ Rules:
 - Include scholarships, internships, government schemes, and skills programs.
 - Provide 5 to 10 opportunities.
 - Do not invent government or official portal URLs.
+- Use real, official government websites for apply links.
 `;
 
   try {
@@ -97,13 +98,17 @@ Rules:
     };
 
     if (userId) {
-      const collection = await getCollection("eligibilityHistory");
-      await collection.insertOne({
-        userId,
-        profile: validated,
-        result,
-        createdAt: new Date(),
-      });
+      try {
+        const collection = await getCollection("eligibilityHistory");
+        await collection.insertOne({
+          userId,
+          profile: validated,
+          result,
+          createdAt: new Date(),
+        });
+      } catch (error) {
+        console.warn("Failed to save eligibility history (database unavailable)");
+      }
     }
 
     return result;

@@ -7,9 +7,12 @@ import {
   Bell,
   Settings2,
   Activity,
+  Moon,
+  Sun,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { VoiceFab } from "./voice-fab";
+import { useState, useEffect } from "react";
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -21,6 +24,24 @@ const nav = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [darkMode, setDarkMode] = useState(false);
+
+  useEffect(() => {
+    // Check for saved preference or system preference
+    const saved = localStorage.getItem("darkMode");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const initialDark = saved === "true" || (!saved && prefersDark);
+    setDarkMode(initialDark);
+    if (initialDark) {
+      document.documentElement.classList.add("dark");
+    }
+  }, []);
+
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+    document.documentElement.classList.toggle("dark");
+    localStorage.setItem("darkMode", (!darkMode).toString());
+  };
 
   return (
     <div className="min-h-screen bg-muted/40 flex">
@@ -31,6 +52,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <span className="font-extrabold text-lg tracking-tighter">AshaAI</span>
         </Link>
+        <button
+          onClick={toggleDarkMode}
+          className="mx-6 p-2 rounded-lg hover:bg-muted transition-colors"
+          title="Toggle dark mode"
+        >
+          {darkMode ? <Sun className="size-5" /> : <Moon className="size-5" />}
+        </button>
         <nav className="flex-1 p-3 space-y-1">
           {nav.map((item) => {
             const active =

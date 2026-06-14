@@ -6,7 +6,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { eligibilityProfileSchema, type EligibilityProfile, type SchemeRecommendation } from "@/shared/types";
+import { eligibilityProfileSchema, type EligibilityProfile, type EligibilityOpportunity } from "@/shared/types";
+import { opportunities } from "@/lib/mock-data";
+import { motion } from "framer-motion";
+import { EligibilityResultDialog } from "@/components/eligibility-result-dialog";
+import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/eligibility")({
   head: () => ({ meta: [{ title: "AI Eligibility Checker — AshaAI" }] }),
@@ -15,6 +19,14 @@ export const Route = createFileRoute("/eligibility")({
 
 const eligibilitySchema = eligibilityProfileSchema.extend({
   category: z.string().min(1, "Category is required"),
+  occupation: z.string().min(1, "Occupation is required"),
+  studentStatus: z.string().min(1, "Student status is required"),
+  disabilityStatus: z.string().min(1, "Disability status is required"),
+  minorityStatus: z.string().min(1, "Minority status is required"),
+  farmerStatus: z.string().min(1, "Farmer status is required"),
+  startupFounder: z.string().min(1, "Startup founder status is required"),
+  womenEntrepreneur: z.string().min(1, "Women entrepreneur status is required"),
+  ruralUrban: z.string().min(1, "Rural/Urban is required"),
 });
 
 type FormValues = z.infer<typeof eligibilitySchema>;
@@ -26,23 +38,152 @@ const defaultValues: FormValues = {
   income: 250000,
   education: "Undergraduate",
   category: "General",
+  occupation: "Student",
+  studentStatus: "Yes",
+  disabilityStatus: "No",
+  minorityStatus: "No",
+  farmerStatus: "No",
+  startupFounder: "No",
+  womenEntrepreneur: "No",
+  ruralUrban: "Urban",
 };
 
 const stateOptions = ["Andhra Pradesh", "Telangana", "Karnataka", "Tamil Nadu", "Maharashtra", "All India"];
 const genderOptions = ["Male", "Female", "Other"];
 const educationOptions = ["School", "Undergraduate", "Graduate", "Postgraduate"];
 const categoryOptions = ["General", "OBC", "SC", "ST", "EWS"];
+const occupationOptions = ["Student", "Unemployed", "Farmer", "Entrepreneur", "Working Professional", "Homemaker"];
+const studentStatusOptions = ["Yes", "No"];
+const disabilityStatusOptions = ["No", "Yes"];
+const minorityStatusOptions = ["No", "Yes"];
+const farmerStatusOptions = ["No", "Yes"];
+const startupFounderOptions = ["No", "Yes"];
+const womenEntrepreneurOptions = ["No", "Yes"];
+const ruralUrbanOptions = ["Urban", "Rural"];
 
 function EligibilityPage() {
-  const [analysis, setAnalysis] = useState<{ schemes: SchemeRecommendation[]; explanation: string; matchScore: number } | null>(null);
+  const navigate = useNavigate();
+  const [analysis, setAnalysis] = useState<{ opportunities: EligibilityOpportunity[]; explanation: string; matchScore: number } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [results, setResults] = useState<typeof opportunities>([]);
+  const [showResultDialog, setShowResultDialog] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(eligibilitySchema),
     defaultValues,
     mode: "onTouched",
   });
+
+  const handleCheckEligibility = () => {
+    const values = form.getValues();
+    
+    // Filter opportunities with detailed scoring
+    const scoredSchemes = opportunities.map((scheme) => {
+      let score = 0;
+      const reasons: string[] = [];
+      const failures: string[] = [];
+      
+      // State match (20 points)
+      const stateMatch = values.state === "All India" || scheme.state === "All India" || scheme.state === values.state;
+      if (stateMatch) {
+        score += 20;
+        reasons.push("State eligible");
+      } else {
+        failures.push("State not eligible");
+      }
+      
+      // Education match (20 points)
+      const educationMatch = scheme.educationLevel === "Any" || 
+                            (values.education === "Undergraduate" && scheme.educationLevel === "Undergraduate") ||
+                            (values.education === "Graduate" && (scheme.educationLevel === "Graduate" || scheme.educationLevel === "Undergraduate")) ||
+                            (values.education === "Postgraduate" && (scheme.educationLevel === "Postgraduate" || scheme.educationLevel === "Graduate"));
+      if (educationMatch) {
+        score += 20;
+        reasons.push("Education criteria met");
+      } else {
+        failures.push("Education level not eligible");
+      }
+      
+      // Income match (20 points)
+      const incomeMatch = scheme.incomeMax >= values.income;
+      if (incomeMatch) {
+        score += 20;
+        reasons.push("Income within limit");
+      } else {
+        failures.push("Income exceeds limit");
+      }
+      
+      // Gender match (10 points)
+      const genderMatch = scheme.gender === "Any" || scheme.gender === values.gender;
+      if (genderMatch) {
+        score += 10;
+        reasons.push("Gender criteria met");
+      } else {
+        failures.push("Gender not eligible");
+      }
+      
+      // Age match (15 points)
+      const ageMatch = values.age >= 16 && values.age <= 45;
+      if (ageMatch) {
+        score += 15;
+        reasons.push("Age criteria met");
+      } else {
+        failures.push("Age not in eligible range");
+      }
+      
+      // Occupation bonus (5 points)
+      if (values.occupation === "Student" && scheme.category === "Scholarships") {
+        score += 5;
+        reasons.push("Student status bonus");
+      }
+      if (values.occupation === "Farmer" && scheme.category === "Agriculture Schemes") {
+        score += 5;
+        reasons.push("Farmer status bonus");
+      }
+      if (values.occupation === "Entrepreneur" && scheme.category === "Startup Grants") {
+        score += 5;
+        reasons.push("Entrepreneur status bonus");
+      }
+      
+      // Women entrepreneur bonus (5 points)
+      if (values.womenEntrepreneur === "Yes" && scheme.category === "Women Empowerment") {
+        score += 5;
+        reasons.push("Women entrepreneur bonus");
+      }
+      
+      // Disability bonus (5 points)
+      if (values.disabilityStatus === "Yes") {
+        score += 5;
+        reasons.push("Disability status consideration");
+      }
+      
+      return {
+        ...scheme,
+        calculatedScore: score,
+        reasons,
+        failures,
+        isEligible: score >= 50
+      };
+    });
+    
+    // Sort by score (highest first)
+    const sortedSchemes = scoredSchemes.sort((a, b) => b.calculatedScore - a.calculatedScore);
+    
+    // Save to localStorage
+    localStorage.setItem("eligibilityHistory", JSON.stringify({
+      timestamp: new Date().toISOString(),
+      profile: values,
+      results: sortedSchemes
+    }));
+    
+    // Save top recommended opportunities for dashboard
+    const topRecommended = sortedSchemes.filter((s) => s.isEligible).slice(0, 5);
+    localStorage.setItem("recommendedOpportunities", JSON.stringify(topRecommended));
+    
+    setResults(sortedSchemes);
+    setShowResultDialog(true);
+  };
 
   async function onSubmit(values: FormValues) {
     setSubmitError(null);
@@ -51,14 +192,18 @@ function EligibilityPage() {
 
     try {
       const token = localStorage.getItem("idToken");
-      const response = await window.fetch("/api/eligibility", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ profile: values }),
-      });
+      const response = await window.fetch(
+        "http://localhost:4000/api/eligibility",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          credentials: "include",
+          body: JSON.stringify({ profile: values }),
+        }
+      );
       const result = await response.json();
       if (!response.ok) {
         throw new Error(result.error || "Unable to analyse eligibility right now.");
@@ -76,10 +221,15 @@ function EligibilityPage() {
 
   return (
     <AppShell>
-      <div className="p-6 md:p-10 max-w-6xl mx-auto space-y-8">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        className="p-6 md:p-10 max-w-6xl mx-auto space-y-8"
+      >
         <header>
           <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1">AI Eligibility</p>
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">Find government schemes you qualify for</h1>
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">Find schemes you qualify for</h1>
           <p className="text-muted-foreground mt-2 max-w-2xl">
             Enter your profile details and AshaAI will analyse eligibility, rank matching schemes, and explain why you qualify.
           </p>
@@ -154,15 +304,252 @@ function EligibilityPage() {
             </label>
           </div>
 
+          <div className="grid gap-4 md:grid-cols-3">
+            <label className="block">
+              <span className="block text-xs font-mono uppercase tracking-widest text-muted-foreground mb-2">Occupation</span>
+              <select
+                {...form.register("occupation")}
+                className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                {occupationOptions.map((occupation) => (
+                  <option key={occupation} value={occupation}>{occupation}</option>
+                ))}
+              </select>
+              {errors.occupation && <p className="text-sm text-destructive mt-2">{errors.occupation.message}</p>}
+            </label>
+
+            <label className="block">
+              <span className="block text-xs font-mono uppercase tracking-widest text-muted-foreground mb-2">Student Status</span>
+              <select
+                {...form.register("studentStatus")}
+                className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                {studentStatusOptions.map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+              {errors.studentStatus && <p className="text-sm text-destructive mt-2">{errors.studentStatus.message}</p>}
+            </label>
+
+            <label className="block">
+              <span className="block text-xs font-mono uppercase tracking-widest text-muted-foreground mb-2">Disability Status</span>
+              <select
+                {...form.register("disabilityStatus")}
+                className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                {disabilityStatusOptions.map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+              {errors.disabilityStatus && <p className="text-sm text-destructive mt-2">{errors.disabilityStatus.message}</p>}
+            </label>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <label className="block">
+              <span className="block text-xs font-mono uppercase tracking-widest text-muted-foreground mb-2">Minority Status</span>
+              <select
+                {...form.register("minorityStatus")}
+                className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                {minorityStatusOptions.map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+              {errors.minorityStatus && <p className="text-sm text-destructive mt-2">{errors.minorityStatus.message}</p>}
+            </label>
+
+            <label className="block">
+              <span className="block text-xs font-mono uppercase tracking-widest text-muted-foreground mb-2">Farmer Status</span>
+              <select
+                {...form.register("farmerStatus")}
+                className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                {farmerStatusOptions.map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+              {errors.farmerStatus && <p className="text-sm text-destructive mt-2">{errors.farmerStatus.message}</p>}
+            </label>
+
+            <label className="block">
+              <span className="block text-xs font-mono uppercase tracking-widest text-muted-foreground mb-2">Startup Founder</span>
+              <select
+                {...form.register("startupFounder")}
+                className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                {startupFounderOptions.map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+              {errors.startupFounder && <p className="text-sm text-destructive mt-2">{errors.startupFounder.message}</p>}
+            </label>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <label className="block">
+              <span className="block text-xs font-mono uppercase tracking-widest text-muted-foreground mb-2">Women Entrepreneur</span>
+              <select
+                {...form.register("womenEntrepreneur")}
+                className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                {womenEntrepreneurOptions.map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+              {errors.womenEntrepreneur && <p className="text-sm text-destructive mt-2">{errors.womenEntrepreneur.message}</p>}
+            </label>
+
+            <label className="block">
+              <span className="block text-xs font-mono uppercase tracking-widest text-muted-foreground mb-2">Rural / Urban</span>
+              <select
+                {...form.register("ruralUrban")}
+                className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                {ruralUrbanOptions.map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+              {errors.ruralUrban && <p className="text-sm text-destructive mt-2">{errors.ruralUrban.message}</p>}
+            </label>
+          </div>
+
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <p className="text-sm text-muted-foreground">All fields are required. AshaAI validates your profile before checking scheme eligibility.</p>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Analyzing profile…" : "Check eligibility"}
+            <Button
+              type="button"
+              onClick={handleCheckEligibility}
+            >
+              Check Eligibility
             </Button>
           </div>
 
           {submitError ? <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-destructive">{submitError}</div> : null}
         </form>
+
+        {results.length > 0 && (
+          <div className="mt-6 space-y-6">
+            <h2 className="text-2xl font-bold mb-4">Top Matches ({results.length})</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              {results.map((item: any) => (
+                <div
+                  key={item.id}
+                  className="rounded-3xl border border-border bg-card p-6 shadow-sm cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() =>
+                    navigate({
+                      to: "/opportunities/$id",
+                      params: { id: item.id },
+                    })
+                  }
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{item.category}</p>
+                      <h3 className="mt-2 text-xl font-semibold">{item.name}</h3>
+                    </div>
+                    <div className={`rounded-full px-4 py-2 text-sm font-semibold ${item.calculatedScore >= 80 ? 'bg-green-100 text-green-700' : item.calculatedScore >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                      {item.calculatedScore}% Match
+                    </div>
+                  </div>
+
+                  <p className="mt-4 text-sm text-muted-foreground leading-6">{item.description}</p>
+
+                  <div className="mt-3 space-y-2">
+                    <p className="text-green-600 font-semibold">{item.benefit}</p>
+                    <p className="text-sm text-muted-foreground">{item.benefitDetail}</p>
+                  </div>
+
+                  {/* Deadline Alert */}
+                  <div className="mt-3">
+                    <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1">Deadline</p>
+                    <p className={`text-sm font-semibold ${item.deadline === 'Rolling' ? 'text-green-600' : 'text-orange-600'}`}>
+                      {item.deadline}
+                    </p>
+                  </div>
+
+                  {/* Why Eligible */}
+                  {item.isEligible && item.reasons.length > 0 && (
+                    <div className="mt-4 p-3 bg-green-50 rounded-xl">
+                      <p className="text-xs font-mono uppercase tracking-widest text-green-700 mb-2">Why Eligible</p>
+                      <ul className="space-y-1">
+                        {item.reasons.map((reason: string, idx: number) => (
+                          <li key={idx} className="text-sm text-green-700 flex items-center gap-2">
+                            ✓ {reason}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Why Not Eligible */}
+                  {!item.isEligible && item.failures.length > 0 && (
+                    <div className="mt-4 p-3 bg-red-50 rounded-xl">
+                      <p className="text-xs font-mono uppercase tracking-widest text-red-700 mb-2">Why Not Eligible</p>
+                      <ul className="space-y-1">
+                        {item.failures.map((failure: string, idx: number) => (
+                          <li key={idx} className="text-sm text-red-700 flex items-center gap-2">
+                            ✗ {failure}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Required Documents */}
+                  <div className="mt-4">
+                    <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-2">Required Documents</p>
+                    <div className="flex flex-wrap gap-2">
+                      {item.documents.map((doc: string, idx: number) => (
+                        <span key={idx} className="px-2 py-1 bg-muted rounded-full text-xs">
+                          {doc}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex gap-3">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate({
+                          to: "/opportunities/$id",
+                          params: { id: item.id },
+                        });
+                      }}
+                      className="flex-1 inline-flex items-center justify-center rounded-2xl bg-primary text-primary-foreground px-4 py-3 text-sm font-semibold"
+                    >
+                      View Opportunity
+                    </button>
+                    <a
+                      href={item.officialUrl}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex-1 inline-flex items-center justify-center rounded-2xl bg-foreground px-4 py-3 text-sm font-semibold text-background"
+                    >
+                      Apply now
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Smart Recommendations for non-eligible schemes */}
+            {results.filter((r: any) => !r.isEligible).length > 0 && (
+              <div className="mt-8 p-6 bg-yellow-50 rounded-3xl border border-yellow-200">
+                <h3 className="text-lg font-bold text-yellow-800 mb-4">Suggested Alternatives</h3>
+                <div className="grid gap-3 md:grid-cols-3">
+                  {results.filter((r: any) => r.isEligible).slice(0, 3).map((item: any) => (
+                    <div key={item.id} className="p-4 bg-white rounded-xl border border-yellow-200">
+                      <p className="font-semibold text-sm">{item.name}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{item.calculatedScore}% Match</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {isLoading && (
           <div className="rounded-3xl bg-card ring-1 ring-black/5 p-6 animate-pulse">
@@ -196,18 +583,18 @@ function EligibilityPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              {analysis.schemes.map((scheme) => (
-                <div key={scheme.name} className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+              {analysis.opportunities.map((scheme) => (
+                <div key={scheme.schemeName} className="rounded-3xl border border-border bg-card p-6 shadow-sm">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{scheme.name}</p>
+                      <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{scheme.schemeName}</p>
                       <h3 className="mt-2 text-xl font-semibold">{scheme.benefitAmount}</h3>
                     </div>
                     <div className="rounded-full bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">{scheme.matchScore}%</div>
                   </div>
                   <p className="mt-4 text-sm text-muted-foreground leading-6">{scheme.whyEligible}</p>
                   <a
-                    href={scheme.applyUrl}
+                    href={scheme.officialApplyLink}
                     target="_blank"
                     rel="noreferrer noopener"
                     className="mt-6 inline-flex items-center justify-center rounded-2xl bg-foreground px-4 py-3 text-sm font-semibold text-background"
@@ -219,7 +606,13 @@ function EligibilityPage() {
             </div>
           </section>
         )}
-      </div>
+
+        <EligibilityResultDialog
+          open={showResultDialog}
+          onClose={() => setShowResultDialog(false)}
+          results={results}
+        />
+      </motion.div>
     </AppShell>
   );
 }

@@ -44,7 +44,7 @@ function AuthPage() {
       console.log("User:", result.user);
 
       // Send welcome email
-      await window.fetch("/api/send-email", {
+      await window.fetch("http://localhost:4000/api/send-email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

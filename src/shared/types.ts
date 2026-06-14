@@ -12,19 +12,11 @@ export const eligibilityProfileSchema = z.object({
 export type EligibilityProfile = z.infer<typeof eligibilityProfileSchema>;
 
 export type EligibilityOpportunity = {
-<<<<<<< HEAD
-  name: string;
-  benefitAmount: string;
-  eligibilityReason: string;
-  applyUrl: string;
-  matchScore: number;
-=======
   schemeName: string;
   matchScore: number;
   benefitAmount: string;
   whyEligible: string;
   officialApplyLink: string;
->>>>>>> origin/tej-code
 };
 
 export type EligibilityAnalysis = {

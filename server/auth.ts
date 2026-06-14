@@ -28,18 +28,6 @@ export type VerifiedUser = {
 export async function verifyIdToken(token?: string): Promise<VerifiedUser | null> {
   if (!token) return null;
   if (!admin.apps.length) {
-<<<<<<< HEAD
-    throw new Error("Firebase admin is not initialized. Provide FIREBASE_ADMIN_* credentials.");
-  }
-
-  const decoded = await admin.auth().verifyIdToken(token);
-  return {
-    uid: decoded.uid,
-    email: decoded.email ?? undefined,
-    name: decoded.name ?? undefined,
-    picture: decoded.picture ?? undefined,
-  };
-=======
     console.warn("Firebase admin is not initialized. Skipping authentication.");
     return null;
   }
@@ -56,7 +44,6 @@ export async function verifyIdToken(token?: string): Promise<VerifiedUser | null
     console.error("Failed to verify Firebase token:", error);
     return null;
   }
->>>>>>> origin/tej-code
 }
 
 export function getBearerToken(authHeader?: string): string | null {

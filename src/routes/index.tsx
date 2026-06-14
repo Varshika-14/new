@@ -1,34 +1,19 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Link } from "@tanstack/react-router";
-import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
-import { VoiceFab } from "@/components/voice-fab";
-import { stats } from "@/lib/mock-data";
-import {
-  Sparkles,
-  ShieldCheck,
-  Mic,
-  LayoutDashboard,
-  FileCheck2,
-  Compass,
-  GraduationCap,
-  Tractor,
-  ArrowRight,
-} from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { motion } from "framer-motion";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "AshaAI — Discover Government Opportunities in Minutes" },
+      { title: "AshaAI - Discover Government" },
       {
         name: "description",
         content:
           "AshaAI is an AI-powered navigator for Indian scholarships, schemes, grants and verified official portals.",
       },
-      { property: "og:title", content: "AshaAI — Discover Government Opportunities in Minutes" },
+      { property: "og:title", content: "AshaAI - Discover Government" },
       {
         property: "og:description",
-        content: "Find personalized scholarships, schemes and grants — safely and verified.",
+        content: "One conversation. Thousands of opportunities ranked, explained and ready to apply.",
       },
     ],
   }),
@@ -36,222 +21,184 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary/10">
-      <SiteHeader />
+  const categories = ["Scholarships", "Internships", "Fellowships", "Grants", "Hackathons"];
 
-      {/* Hero */}
-      <section className="relative pt-20 pb-24 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
-          <div className="animate-reveal">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/5 rounded-full border border-primary/10 mb-6">
-              <span className="flex size-2 bg-primary rounded-full animate-pulse" />
-              <span className="text-xs font-mono font-medium text-primary uppercase tracking-wider">
-                v2.0 Government Navigator
-              </span>
-            </div>
-            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-balance leading-[1.05] mb-8">
-              Discover <span className="text-primary">Government</span> Opportunities in Minutes
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-[42ch] mb-10 leading-relaxed">
-              Find scholarships, schemes, grants, internships and public benefits personalized for
-              you — verified against official Government of India sources.
-            </p>
-            <div className="flex flex-wrap gap-4">
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-purple-950 text-white overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <motion.div
+          animate={{
+            scale: [1, 1.2, 1],
+            rotate: [0, 90, 0],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+          className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-purple-500/20 to-transparent rounded-full blur-3xl"
+        />
+        <motion.div
+          animate={{
+            scale: [1.2, 1, 1.2],
+            rotate: [90, 0, 90],
+          }}
+          transition={{
+            duration: 25,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+          className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-purple-400/20 to-transparent rounded-full blur-3xl"
+        />
+      </div>
+
+      {/* Navigation */}
+      <motion.nav
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="relative border-b border-white/10 backdrop-blur-sm"
+      >
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            transition={{ type: "spring", stiffness: 400 }}
+          >
+            <Link to="/" className="text-2xl font-extrabold tracking-tighter">
+              AshaAI
+            </Link>
+          </motion.div>
+          <div className="hidden md:flex items-center gap-8">
+            {["Discover", "Protection", "How it works", "Browse", "Eligibility"].map((item) => (
+              <motion.div
+                key={item}
+                whileHover={{ scale: 1.1 }}
+                transition={{ type: "spring", stiffness: 400 }}
+              >
+                <Link
+                  to={item === "Discover" ? "/" : item === "Protection" ? "/trusted-browser" : item === "Browse" ? "/opportunities" : item === "Eligibility" ? "/eligibility" : "/"}
+                  className="text-sm font-medium hover:text-purple-300 transition-colors"
+                >
+                  {item}
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400 }}
+          >
+            <Link
+              to="/auth"
+              search={{ mode: "login" }}
+              className="bg-white text-purple-900 px-6 py-2 rounded-full text-sm font-semibold hover:bg-gray-200 transition-colors shadow-lg shadow-purple-500/30"
+            >
+              Log In
+            </Link>
+          </motion.div>
+        </div>
+      </motion.nav>
+
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        {/* Hero Section */}
+        <div className="relative z-10 text-center py-16 md:py-24 px-6">
+          <motion.p
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.8 }}
+            className="text-sm font-semibold text-purple-300 mb-3 tracking-wider"
+          >
+            INTRODUCING ASHAAI
+          </motion.p>
+          <motion.h1
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.8 }}
+            className="text-5xl md:text-8xl font-extrabold leading-tight mb-6"
+          >
+            Opportunity.
+            <br />
+            <span className="bg-gradient-to-r from-purple-400 to-white bg-clip-text text-transparent">
+              Reimagined.
+            </span>
+          </motion.h1>
+          <motion.p
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.6, duration: 0.8 }}
+            className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-10"
+          >
+            The AI assistant that finds, verifies and ranks the world's best opportunities — in seconds.
+          </motion.p>
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.8, duration: 0.8 }}
+            className="flex flex-col sm:flex-row justify-center gap-4"
+          >
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 400 }}
+            >
               <Link
-                to="/auth"
-                search={{ mode: "signup" }}
-                className="px-8 py-4 bg-primary text-primary-foreground font-bold rounded-xl hover:-translate-y-0.5 transition-all shadow-xl shadow-primary/20"
+                to="/eligibility"
+                className="bg-white text-purple-900 px-8 py-3 rounded-full text-lg font-semibold hover:bg-gray-200 transition-colors shadow-lg shadow-purple-500/30"
               >
                 Get Started
               </Link>
-              <Link
-                to="/opportunities"
-                className="px-8 py-4 bg-background border border-border font-bold rounded-xl hover:bg-muted transition-all inline-flex items-center gap-2"
+            </motion.div>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 400 }}
+              className="bg-gradient-to-r from-purple-600 to-purple-800 text-white px-8 py-3 rounded-full text-lg font-semibold hover:from-purple-700 hover:to-purple-900 transition-colors shadow-lg shadow-purple-500/30"
+            >
+              See what it does →
+            </motion.button>
+          </motion.div>
+        </div>
+
+        {/* Categories */}
+        <motion.div
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 1, duration: 0.8 }}
+          className="max-w-7xl mx-auto px-6 py-12"
+        >
+          <div className="flex flex-wrap justify-center gap-3">
+            {categories.map((category, index) => (
+              <motion.button
+                key={category}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 1.2 + index * 0.1, type: "spring", stiffness: 200 }}
+                whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.3)" }}
+                whileTap={{ scale: 0.95 }}
+                className="px-6 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-sm font-medium hover:bg-white/20 transition-colors"
               >
-                Explore Opportunities <ArrowRight className="size-4" />
-              </Link>
-            </div>
+                {category.toUpperCase()}
+              </motion.button>
+            ))}
+            <motion.button
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 1.7, type: "spring", stiffness: 200 }}
+              whileHover={{ scale: 1.1, backgroundColor: "rgba(168, 85, 247, 0.4)" }}
+              whileTap={{ scale: 0.95 }}
+              className="px-6 py-3 bg-purple-500/30 backdrop-blur-sm border border-purple-400/30 rounded-full text-sm font-medium hover:bg-purple-500/40 transition-colors"
+            >
+              + KEEP EXPLORING
+            </motion.button>
           </div>
-
-          <div className="relative animate-reveal [animation-delay:200ms]">
-            <div className="bg-card ring-1 ring-black/5 shadow-2xl rounded-3xl p-8">
-              <div className="flex justify-between items-start mb-8">
-                <div>
-                  <p className="text-sm font-mono text-muted-foreground uppercase tracking-widest mb-1">
-                    Profile Analysis
-                  </p>
-                  <h3 className="text-2xl font-bold">Eligibility Match</h3>
-                </div>
-                <div className="size-16 rounded-full border-4 border-accent/20 border-t-accent flex items-center justify-center">
-                  <span className="text-lg font-bold text-accent">82%</span>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <MatchRow icon={<GraduationCap className="size-5 text-primary" />} title="PM Research Fellowship" sub="Education Grant" tag="High Match" />
-                <MatchRow icon={<Tractor className="size-5 text-primary" />} title="Startup India Seed Fund" sub="Grant Support" tag="Eligible" />
-              </div>
-            </div>
-            <div className="absolute -z-10 -top-6 -right-6 size-64 bg-accent/10 rounded-full blur-3xl opacity-50" />
-          </div>
-        </div>
-      </section>
-
-      {/* Trust strip */}
-      <div className="border-y border-border bg-muted">
-        <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
-          <Stat n={stats.schemes} l="Schemes Indexed" />
-          <Stat n={stats.fund} l="Scholarship Fund" />
-          <Stat n={stats.verified} l="Verified Links" />
-          <Stat n={stats.assisted} l="Citizens Assisted" />
-        </div>
-      </div>
-
-      {/* Trusted Browser */}
-      <section className="py-24 bg-background">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-extrabold tracking-tight mb-4">Verified Source Protection</h2>
-            <p className="text-muted-foreground max-w-[60ch] mx-auto">
-              Our Trusted Government Browser filters out scams and fake portals using real-time
-              domain verification against the NIC / gov.in registry.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            <TrustCard
-              level="success"
-              label="Verified Official"
-              url="https://pms.nic.in/portal/apply"
-              heading="Trusted Resource"
-              body="Legitimate .nic.in domain operated by the Ministry."
-            />
-            <TrustCard
-              level="warning"
-              label="Unofficial Source"
-              url="https://scholarship-news-india.com"
-              heading="Exercise Caution"
-              body="Informational blog only. Not for application submission."
-            />
-            <TrustCard
-              level="error"
-              label="Potentially Unsafe"
-              url="http://pm-schemes-free-reg.tk"
-              heading="Access Blocked"
-              body="Suspected phishing attempt. Domain is not authorized."
-              pulse
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="py-24 bg-muted">
-        <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-3xl font-extrabold mb-16 text-center">Intelligent Assistant Services</h2>
-          <div className="grid md:grid-cols-3 gap-x-12 gap-y-12">
-            <Feature icon={<Sparkles className="size-5 text-primary-foreground" />} bg="bg-primary" title="AI Eligibility Checker" body="Instant profile matching against thousands of schemes using advanced NLP." />
-            <Feature icon={<ShieldCheck className="size-5 text-accent-foreground" />} bg="bg-accent" title="Trusted Government Browser" body="Verify any URL against the NIC registry before submitting documents." />
-            <Feature icon={<Mic className="size-5 text-primary-foreground" />} bg="bg-foreground" title="Voice Assistant" body="Navigate bureaucracy via Hindi, Telugu or English voice commands." />
-            <Feature icon={<LayoutDashboard className="size-5 text-primary-foreground" />} bg="bg-primary" title="Opportunity Dashboard" body="Deadlines, application status and personalised alerts in one view." />
-            <Feature icon={<FileCheck2 className="size-5 text-accent-foreground" />} bg="bg-accent" title="Application Guidance" body="Step-by-step document checklists tailored to your application." />
-            <Feature icon={<Compass className="size-5 text-primary-foreground" />} bg="bg-foreground" title="Personalized Recommendations" body="Continuously updated suggestions as new schemes launch." />
-          </div>
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section className="py-24 bg-background">
-        <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-3xl font-extrabold tracking-tight mb-16 text-center">Your Journey to Success</h2>
-          <div className="grid md:grid-cols-4 gap-12">
-            <Step n="01" t="Enter Profile" b="Share educational and demographic details securely." />
-            <Step n="02" t="Check Eligibility" b="AI analyses thousands of schemes against your data." />
-            <Step n="03" t="Explore Matches" b="Browse personalised recommendations ranked by benefit." />
-            <Step n="04" t="Apply Safely" b="Use verified official links to submit your application." />
-          </div>
-        </div>
-      </section>
-
-      <SiteFooter />
-      <VoiceFab />
-    </div>
-  );
-}
-
-function MatchRow({ icon, title, sub, tag }: { icon: React.ReactNode; title: string; sub: string; tag: string }) {
-  return (
-    <div className="p-4 bg-muted rounded-xl border border-border flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <div className="size-10 bg-background rounded-lg flex items-center justify-center shadow-sm">{icon}</div>
-        <div>
-          <p className="text-sm font-bold">{title}</p>
-          <p className="text-xs text-muted-foreground">{sub}</p>
-        </div>
-      </div>
-      <span className="px-2 py-1 bg-success/10 text-success text-[10px] font-bold rounded uppercase">{tag}</span>
-    </div>
-  );
-}
-
-function Stat({ n, l }: { n: string; l: string }) {
-  return (
-    <div className="text-center">
-      <p className="text-3xl font-extrabold mb-1">{n}</p>
-      <p className="text-xs font-mono text-muted-foreground uppercase tracking-wider">{l}</p>
-    </div>
-  );
-}
-
-function TrustCard({
-  level,
-  label,
-  url,
-  heading,
-  body,
-  pulse,
-}: {
-  level: "success" | "warning" | "error";
-  label: string;
-  url: string;
-  heading: string;
-  body: string;
-  pulse?: boolean;
-}) {
-  const dot = level === "success" ? "bg-success" : level === "warning" ? "bg-warning" : "bg-destructive";
-  const txt = level === "success" ? "text-success" : level === "warning" ? "text-warning" : "text-destructive";
-  const ring = level === "success" ? "hover:ring-success/50" : level === "warning" ? "hover:ring-warning/50" : "hover:ring-destructive/50";
-  const bg = level === "success" ? "bg-success/5 border-success/10" : level === "warning" ? "bg-warning/5 border-warning/10" : "bg-destructive/5 border-destructive/10";
-  return (
-    <div className={`bg-card p-6 rounded-2xl ring-1 ring-black/5 transition-all ${ring}`}>
-      <div className="flex items-center gap-2 mb-4">
-        <span className={`size-3 ${dot} rounded-full ${pulse ? "animate-pulse" : ""}`} />
-        <span className={`text-xs font-mono ${txt} font-bold uppercase tracking-wider`}>{label}</span>
-      </div>
-      <div className="mb-6 p-4 bg-muted rounded-lg text-xs font-mono text-muted-foreground truncate">{url}</div>
-      <div className={`p-4 ${bg} border rounded-xl`}>
-        <p className={`text-sm font-bold ${txt} mb-1`}>{heading}</p>
-        <p className={`text-xs ${txt}/80`}>{body}</p>
-      </div>
-    </div>
-  );
-}
-
-function Feature({ icon, bg, title, body }: { icon: React.ReactNode; bg: string; title: string; body: string }) {
-  return (
-    <div>
-      <div className={`size-12 ${bg} rounded-xl flex items-center justify-center mb-6`}>{icon}</div>
-      <h3 className="text-xl font-bold mb-3">{title}</h3>
-      <p className="text-muted-foreground leading-relaxed">{body}</p>
-    </div>
-  );
-}
-
-function Step({ n, t, b }: { n: string; t: string; b: string }) {
-  return (
-    <div>
-      <div className="text-5xl font-extrabold text-primary/15 mb-4">{n}</div>
-      <h4 className="font-bold mb-2">{t}</h4>
-      <p className="text-sm text-muted-foreground leading-relaxed">{b}</p>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }

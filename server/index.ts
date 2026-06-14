@@ -7,6 +7,17 @@ import { analyzeEligibility } from "./eligibility";
 import { saveUserProfile, getUserProfile } from "./users";
 import { getDb } from "./db";
 import { sendMail } from "./email";
+import {
+  getOpportunities,
+  getOpportunityById,
+  createOpportunity,
+  bulkImportOpportunities,
+  updateOpportunity,
+  deleteOpportunity,
+  verifyOpportunityUrl,
+  getOpportunityStats,
+} from "./opportunities";
+import { externalAPI } from "./external-apis";
 import type { VerifiedUser } from "./auth";
 
 const port = Number(process.env.BACKEND_PORT ?? 4000);
@@ -126,6 +137,123 @@ const server = createServer(async (request, response) => {
       }
       await sendMail(body.email, "AshaAI Notification", `<h2>Hello!</h2><p>${body.message}</p>`);
       return sendJson(response, request, { success: true });
+    }
+
+    // Opportunity API endpoints
+    if (url.pathname === "/api/opportunities" && method === "GET") {
+      const query = url.query as any;
+      const filter: any = {};
+      if (query.category) filter.category = query.category;
+      if (query.state) filter.state = query.state;
+      if (query.educationLevel) filter.educationLevel = query.educationLevel;
+      if (query.limit) filter.limit = parseInt(query.limit);
+      
+      const opportunities = await getOpportunities(filter);
+      return sendJson(response, request, { opportunities, count: opportunities.length });
+    }
+
+    if (url.pathname === "/api/opportunities" && method === "POST") {
+      const user = await authenticate(request);
+      if (!user) {
+        return sendJson(response, request, { error: "Unauthorized." }, 401);
+      }
+      
+      const body = await parseBody(request);
+      if (!body) {
+        return sendJson(response, request, { error: "Request body is required." }, 400);
+      }
+      
+      // Single opportunity or bulk import
+      if (Array.isArray(body)) {
+        const result = await bulkImportOpportunities(body);
+        return sendJson(response, request, { success: true, inserted: result.insertedCount });
+      } else {
+        const result = await createOpportunity(body);
+        return sendJson(response, request, { success: true, id: result.insertedId });
+      }
+    }
+
+    if (url.pathname?.startsWith("/api/opportunities/") && method === "GET") {
+      const id = url.pathname.split("/").pop();
+      const opportunity = await getOpportunityById(id!);
+      if (!opportunity) {
+        return sendJson(response, request, { error: "Opportunity not found." }, 404);
+      }
+      return sendJson(response, request, opportunity);
+    }
+
+    if (url.pathname?.startsWith("/api/opportunities/") && method === "PUT") {
+      const user = await authenticate(request);
+      if (!user) {
+        return sendJson(response, request, { error: "Unauthorized." }, 401);
+      }
+      
+      const id = url.pathname.split("/").pop();
+      const body = await parseBody(request);
+      const result = await updateOpportunity(id!, body);
+      return sendJson(response, request, { success: true, modified: result.modifiedCount });
+    }
+
+    if (url.pathname?.startsWith("/api/opportunities/") && method === "DELETE") {
+      const user = await authenticate(request);
+      if (!user) {
+        return sendJson(response, request, { error: "Unauthorized." }, 401);
+      }
+      
+      const id = url.pathname.split("/").pop();
+      const result = await deleteOpportunity(id!);
+      return sendJson(response, request, { success: true, deleted: result.deletedCount });
+    }
+
+    if (url.pathname === "/api/opportunities/stats" && method === "GET") {
+      const stats = await getOpportunityStats();
+      return sendJson(response, request, stats);
+    }
+
+    if (url.pathname?.startsWith("/api/opportunities/") && url.pathname.endsWith("/verify") && method === "POST") {
+      const id = url.pathname.split("/").slice(-2, -1)[0];
+      const result = await verifyOpportunityUrl(id!);
+      return sendJson(response, request, result);
+    }
+
+    // External API integration endpoints
+    if (url.pathname === "/api/external/fetch" && method === "POST") {
+      const user = await authenticate(request);
+      if (!user) {
+        return sendJson(response, request, { error: "Unauthorized." }, 401);
+      }
+      
+      const body = await parseBody(request);
+      const keyword = body?.keyword || "software";
+      const category = body?.category || "All";
+      const limit = body?.limit || 50;
+      
+      try {
+        const opportunities = await externalAPI.searchOpportunities(keyword, category);
+        const result = await externalAPI.importToDatabase(opportunities, "external-api");
+        return sendJson(response, request, { 
+          success: true, 
+          fetched: opportunities.length,
+          imported: result.insertedCount 
+        });
+      } catch (error) {
+        console.error("External API fetch failed:", error);
+        return sendJson(response, request, { error: "External API fetch failed." }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/external/internships" && method === "GET") {
+      const query = url.query as any;
+      const keyword = query.keyword || "software";
+      const limit = parseInt(query.limit || "50");
+      
+      try {
+        const opportunities = await externalAPI.fetchInternships(keyword, limit);
+        return sendJson(response, request, { opportunities, count: opportunities.length });
+      } catch (error) {
+        console.error("Internship fetch failed:", error);
+        return sendJson(response, request, { error: "Internship fetch failed." }, 500);
+      }
     }
 
     return sendJson(response, request, { error: "Not found." }, 404);

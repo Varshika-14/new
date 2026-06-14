@@ -1,5 +1,5 @@
 ﻿import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,20 +13,20 @@ import { EligibilityResultDialog } from "@/components/eligibility-result-dialog"
 import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/eligibility")({
-  head: () => ({ meta: [{ title: "AI Eligibility Checker — AshaAI" }] }),
+  head: () => ({ meta: [{ title: "Opportunities by Occupation — AshaAI" }] }),
   component: EligibilityPage,
 });
 
 const eligibilitySchema = eligibilityProfileSchema.extend({
   category: z.string().min(1, "Category is required"),
   occupation: z.string().min(1, "Occupation is required"),
-  studentStatus: z.string().min(1, "Student status is required"),
   disabilityStatus: z.string().min(1, "Disability status is required"),
   minorityStatus: z.string().min(1, "Minority status is required"),
   farmerStatus: z.string().min(1, "Farmer status is required"),
   startupFounder: z.string().min(1, "Startup founder status is required"),
   womenEntrepreneur: z.string().min(1, "Women entrepreneur status is required"),
   ruralUrban: z.string().min(1, "Rural/Urban is required"),
+  income: z.number().min(100000, "Income must be at least 6 digits"),
 });
 
 type FormValues = z.infer<typeof eligibilitySchema>;
@@ -39,7 +39,6 @@ const defaultValues: FormValues = {
   education: "Undergraduate",
   category: "General",
   occupation: "Student",
-  studentStatus: "Yes",
   disabilityStatus: "No",
   minorityStatus: "No",
   farmerStatus: "No",
@@ -53,7 +52,6 @@ const genderOptions = ["Male", "Female", "Other"];
 const educationOptions = ["School", "Undergraduate", "Graduate", "Postgraduate"];
 const categoryOptions = ["General", "OBC", "SC", "ST", "EWS"];
 const occupationOptions = ["Student", "Unemployed", "Farmer", "Entrepreneur", "Working Professional", "Homemaker"];
-const studentStatusOptions = ["Yes", "No"];
 const disabilityStatusOptions = ["No", "Yes"];
 const minorityStatusOptions = ["No", "Yes"];
 const farmerStatusOptions = ["No", "Yes"];
@@ -63,10 +61,8 @@ const ruralUrbanOptions = ["Urban", "Rural"];
 
 function EligibilityPage() {
   const navigate = useNavigate();
-  const [analysis, setAnalysis] = useState<{ opportunities: EligibilityOpportunity[]; explanation: string; matchScore: number } | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const [results, setResults] = useState<typeof opportunities>([]);
+  const [loading, setLoading] = useState(false);
   const [showResultDialog, setShowResultDialog] = useState(false);
 
   const form = useForm<FormValues>({
@@ -78,11 +74,30 @@ function EligibilityPage() {
   const handleCheckEligibility = () => {
     const values = form.getValues();
     
+    // Define occupation-specific categories
+    const occupationCategories: Record<string, string[]> = {
+      "Student": ["Scholarships", "Education", "Internships"],
+      "Farmer": ["Agriculture Schemes"],
+      "Entrepreneur": ["Startup Grants", "Business Loans"],
+      "Working Professional": ["Jobs", "Training Programs", "Skill Development"],
+      "Homemaker": ["Women Empowerment", "Skill Development"],
+      "Unemployed": ["Skill Development", "Training Programs", "Startup Grants"],
+    };
+    
+    const relevantCategories = occupationCategories[values.occupation] || [];
+    
     // Filter opportunities with detailed scoring
     const scoredSchemes = opportunities.map((scheme) => {
       let score = 0;
       const reasons: string[] = [];
       const failures: string[] = [];
+      const isOccupationRelevant = relevantCategories.includes(scheme.category);
+      
+      // Occupation relevance bonus (20 points) - this is now a major factor
+      if (isOccupationRelevant) {
+        score += 20;
+        reasons.push(`Matches ${values.occupation} profile`);
+      }
       
       // State match (20 points)
       const stateMatch = values.state === "All India" || scheme.state === "All India" || scheme.state === values.state;
@@ -105,10 +120,10 @@ function EligibilityPage() {
         failures.push("Education level not eligible");
       }
       
-      // Income match (20 points)
+      // Income match (15 points)
       const incomeMatch = scheme.incomeMax >= values.income;
       if (incomeMatch) {
-        score += 20;
+        score += 15;
         reasons.push("Income within limit");
       } else {
         failures.push("Income exceeds limit");
@@ -123,27 +138,13 @@ function EligibilityPage() {
         failures.push("Gender not eligible");
       }
       
-      // Age match (15 points)
+      // Age match (10 points)
       const ageMatch = values.age >= 16 && values.age <= 45;
       if (ageMatch) {
-        score += 15;
+        score += 10;
         reasons.push("Age criteria met");
       } else {
         failures.push("Age not in eligible range");
-      }
-      
-      // Occupation bonus (5 points)
-      if (values.occupation === "Student" && scheme.category === "Scholarships") {
-        score += 5;
-        reasons.push("Student status bonus");
-      }
-      if (values.occupation === "Farmer" && scheme.category === "Agriculture Schemes") {
-        score += 5;
-        reasons.push("Farmer status bonus");
-      }
-      if (values.occupation === "Entrepreneur" && scheme.category === "Startup Grants") {
-        score += 5;
-        reasons.push("Entrepreneur status bonus");
       }
       
       // Women entrepreneur bonus (5 points)
@@ -163,12 +164,19 @@ function EligibilityPage() {
         calculatedScore: score,
         reasons,
         failures,
-        isEligible: score >= 50
+        isEligible: score >= 50,
+        isOccupationRelevant
       };
     });
     
-    // Sort by score (highest first)
-    const sortedSchemes = scoredSchemes.sort((a, b) => b.calculatedScore - a.calculatedScore);
+    // Sort by score (highest first), with occupation-relevant schemes prioritized
+    const sortedSchemes = scoredSchemes.sort((a, b) => {
+      // First prioritize by occupation relevance
+      if (a.isOccupationRelevant && !b.isOccupationRelevant) return -1;
+      if (!a.isOccupationRelevant && b.isOccupationRelevant) return 1;
+      // Then by score
+      return b.calculatedScore - a.calculatedScore;
+    });
     
     // Save to localStorage
     localStorage.setItem("eligibilityHistory", JSON.stringify({
@@ -184,38 +192,6 @@ function EligibilityPage() {
     setResults(sortedSchemes);
     setShowResultDialog(true);
   };
-
-  async function onSubmit(values: FormValues) {
-    setSubmitError(null);
-    setIsLoading(true);
-    setAnalysis(null);
-
-    try {
-      const token = localStorage.getItem("idToken");
-      const response = await window.fetch(
-        "http://localhost:4000/api/eligibility",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          credentials: "include",
-          body: JSON.stringify({ profile: values }),
-        }
-      );
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.error || "Unable to analyse eligibility right now.");
-      }
-      setAnalysis(result);
-    } catch (error) {
-      console.error(error);
-      setSubmitError((error as Error).message || "Unable to analyse eligibility right now. Please try again later.");
-    } finally {
-      setIsLoading(false);
-    }
-  }
 
   const errors = form.formState.errors;
 
@@ -235,7 +211,7 @@ function EligibilityPage() {
           </p>
         </header>
 
-        <form onSubmit={form.handleSubmit(onSubmit)} className="rounded-3xl bg-card ring-1 ring-black/5 p-6 md:p-8 space-y-6">
+        <form onSubmit={form.handleSubmit(handleCheckEligibility)} className="rounded-3xl bg-card ring-1 ring-black/5 p-6 md:p-8 space-y-6">
           <div className="grid gap-4 md:grid-cols-3">
             <label className="block">
               <span className="block text-xs font-mono uppercase tracking-widest text-muted-foreground mb-2">State</span>
@@ -319,19 +295,6 @@ function EligibilityPage() {
             </label>
 
             <label className="block">
-              <span className="block text-xs font-mono uppercase tracking-widest text-muted-foreground mb-2">Student Status</span>
-              <select
-                {...form.register("studentStatus")}
-                className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-              >
-                {studentStatusOptions.map((status) => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
-              </select>
-              {errors.studentStatus && <p className="text-sm text-destructive mt-2">{errors.studentStatus.message}</p>}
-            </label>
-
-            <label className="block">
               <span className="block text-xs font-mono uppercase tracking-widest text-muted-foreground mb-2">Disability Status</span>
               <select
                 {...form.register("disabilityStatus")}
@@ -343,9 +306,7 @@ function EligibilityPage() {
               </select>
               {errors.disabilityStatus && <p className="text-sm text-destructive mt-2">{errors.disabilityStatus.message}</p>}
             </label>
-          </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
             <label className="block">
               <span className="block text-xs font-mono uppercase tracking-widest text-muted-foreground mb-2">Minority Status</span>
               <select
@@ -358,7 +319,9 @@ function EligibilityPage() {
               </select>
               {errors.minorityStatus && <p className="text-sm text-destructive mt-2">{errors.minorityStatus.message}</p>}
             </label>
+          </div>
 
+          <div className="grid gap-4 md:grid-cols-3">
             <label className="block">
               <span className="block text-xs font-mono uppercase tracking-widest text-muted-foreground mb-2">Farmer Status</span>
               <select
@@ -384,9 +347,7 @@ function EligibilityPage() {
               </select>
               {errors.startupFounder && <p className="text-sm text-destructive mt-2">{errors.startupFounder.message}</p>}
             </label>
-          </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
             <label className="block">
               <span className="block text-xs font-mono uppercase tracking-widest text-muted-foreground mb-2">Women Entrepreneur</span>
               <select
@@ -399,7 +360,9 @@ function EligibilityPage() {
               </select>
               {errors.womenEntrepreneur && <p className="text-sm text-destructive mt-2">{errors.womenEntrepreneur.message}</p>}
             </label>
+          </div>
 
+          <div className="grid gap-4 md:grid-cols-3">
             <label className="block">
               <span className="block text-xs font-mono uppercase tracking-widest text-muted-foreground mb-2">Rural / Urban</span>
               <select
@@ -416,195 +379,231 @@ function EligibilityPage() {
 
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <p className="text-sm text-muted-foreground">All fields are required. AshaAI validates your profile before checking scheme eligibility.</p>
-            <Button
-              type="button"
-              onClick={handleCheckEligibility}
-            >
+            <Button type="submit">
               Check Eligibility
             </Button>
           </div>
-
-          {submitError ? <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-destructive">{submitError}</div> : null}
         </form>
 
         {results.length > 0 && (
           <div className="mt-6 space-y-6">
             <h2 className="text-2xl font-bold mb-4">Top Matches ({results.length})</h2>
-            <div className="grid gap-4 md:grid-cols-2">
-              {results.map((item: any) => (
-                <div
-                  key={item.id}
-                  className="rounded-3xl border border-border bg-card p-6 shadow-sm cursor-pointer hover:border-primary/50 transition-colors"
-                  onClick={() =>
-                    navigate({
-                      to: "/opportunities/$id",
-                      params: { id: item.id },
-                    })
-                  }
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{item.category}</p>
-                      <h3 className="mt-2 text-xl font-semibold">{item.name}</h3>
-                    </div>
-                    <div className={`rounded-full px-4 py-2 text-sm font-semibold ${item.calculatedScore >= 80 ? 'bg-green-100 text-green-700' : item.calculatedScore >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
-                      {item.calculatedScore}% Match
-                    </div>
-                  </div>
-
-                  <p className="mt-4 text-sm text-muted-foreground leading-6">{item.description}</p>
-
-                  <div className="mt-3 space-y-2">
-                    <p className="text-green-600 font-semibold">{item.benefit}</p>
-                    <p className="text-sm text-muted-foreground">{item.benefitDetail}</p>
-                  </div>
-
-                  {/* Deadline Alert */}
-                  <div className="mt-3">
-                    <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1">Deadline</p>
-                    <p className={`text-sm font-semibold ${item.deadline === 'Rolling' ? 'text-green-600' : 'text-orange-600'}`}>
-                      {item.deadline}
-                    </p>
-                  </div>
-
-                  {/* Why Eligible */}
-                  {item.isEligible && item.reasons.length > 0 && (
-                    <div className="mt-4 p-3 bg-green-50 rounded-xl">
-                      <p className="text-xs font-mono uppercase tracking-widest text-green-700 mb-2">Why Eligible</p>
-                      <ul className="space-y-1">
-                        {item.reasons.map((reason: string, idx: number) => (
-                          <li key={idx} className="text-sm text-green-700 flex items-center gap-2">
-                            ✓ {reason}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Why Not Eligible */}
-                  {!item.isEligible && item.failures.length > 0 && (
-                    <div className="mt-4 p-3 bg-red-50 rounded-xl">
-                      <p className="text-xs font-mono uppercase tracking-widest text-red-700 mb-2">Why Not Eligible</p>
-                      <ul className="space-y-1">
-                        {item.failures.map((failure: string, idx: number) => (
-                          <li key={idx} className="text-sm text-red-700 flex items-center gap-2">
-                            ✗ {failure}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Required Documents */}
-                  <div className="mt-4">
-                    <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-2">Required Documents</p>
-                    <div className="flex flex-wrap gap-2">
-                      {item.documents.map((doc: string, idx: number) => (
-                        <span key={idx} className="px-2 py-1 bg-muted rounded-full text-xs">
-                          {doc}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="mt-6 flex gap-3">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
+            
+            {/* Occupation-relevant opportunities */}
+            {results.filter((r: any) => r.isOccupationRelevant).length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-primary">Best Matches for Your Occupation</h3>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {results.filter((r: any) => r.isOccupationRelevant).map((item: any) => (
+                    <div
+                      key={item.id}
+                      className="rounded-3xl border-2 border-primary bg-card p-6 shadow-sm cursor-pointer hover:border-primary/50 transition-colors"
+                      onClick={() =>
                         navigate({
                           to: "/opportunities/$id",
                           params: { id: item.id },
-                        });
-                      }}
-                      className="flex-1 inline-flex items-center justify-center rounded-2xl bg-primary text-primary-foreground px-4 py-3 text-sm font-semibold"
+                        })
+                      }
                     >
-                      View Opportunity
-                    </button>
-                    <a
-                      href={item.officialUrl}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex-1 inline-flex items-center justify-center rounded-2xl bg-foreground px-4 py-3 text-sm font-semibold text-background"
-                    >
-                      Apply now
-                    </a>
-                  </div>
-                </div>
-              ))}
-            </div>
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{item.category}</p>
+                            <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-full">Perfect Match</span>
+                          </div>
+                          <h3 className="mt-2 text-xl font-semibold">{item.name}</h3>
+                        </div>
+                        <div className={`rounded-full px-4 py-2 text-sm font-semibold ${item.calculatedScore >= 80 ? 'bg-green-100 text-green-700' : item.calculatedScore >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                          {item.calculatedScore}% Match
+                        </div>
+                      </div>
 
-            {/* Smart Recommendations for non-eligible schemes */}
-            {results.filter((r: any) => !r.isEligible).length > 0 && (
-              <div className="mt-8 p-6 bg-yellow-50 rounded-3xl border border-yellow-200">
-                <h3 className="text-lg font-bold text-yellow-800 mb-4">Suggested Alternatives</h3>
-                <div className="grid gap-3 md:grid-cols-3">
-                  {results.filter((r: any) => r.isEligible).slice(0, 3).map((item: any) => (
-                    <div key={item.id} className="p-4 bg-white rounded-xl border border-yellow-200">
-                      <p className="font-semibold text-sm">{item.name}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{item.calculatedScore}% Match</p>
+                      <p className="mt-4 text-sm text-muted-foreground leading-6">{item.description}</p>
+
+                      <div className="mt-3 space-y-2">
+                        <p className="text-green-600 font-semibold">{item.benefit}</p>
+                        <p className="text-sm text-muted-foreground">{item.benefitDetail}</p>
+                      </div>
+
+                      <div className="mt-3">
+                        <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1">Deadline</p>
+                        <p className={`text-sm font-semibold ${item.deadline === 'Rolling' ? 'text-green-600' : 'text-orange-600'}`}>
+                          {item.deadline}
+                        </p>
+                      </div>
+
+                      {item.isEligible && item.reasons.length > 0 && (
+                        <div className="mt-4 p-3 bg-green-50 rounded-xl">
+                          <p className="text-xs font-mono uppercase tracking-widest text-green-700 mb-2">Why Eligible</p>
+                          <ul className="space-y-1">
+                            {item.reasons.map((reason: string, idx: number) => (
+                              <li key={idx} className="text-sm text-green-700 flex items-center gap-2">
+                                ✓ {reason}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {!item.isEligible && item.failures.length > 0 && (
+                        <div className="mt-4 p-3 bg-red-50 rounded-xl">
+                          <p className="text-xs font-mono uppercase tracking-widest text-red-700 mb-2">Why Not Eligible</p>
+                          <ul className="space-y-1">
+                            {item.failures.map((failure: string, idx: number) => (
+                              <li key={idx} className="text-sm text-red-700 flex items-center gap-2">
+                                ✗ {failure}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      <div className="mt-4">
+                        <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-2">Required Documents</p>
+                        <div className="flex flex-wrap gap-2">
+                          {item.documents.map((doc: string, idx: number) => (
+                            <span key={idx} className="px-2 py-1 bg-muted rounded-full text-xs">
+                              {doc}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="mt-6 flex gap-3">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({
+                              to: "/opportunities/$id",
+                              params: { id: item.id },
+                            });
+                          }}
+                          className="flex-1 inline-flex items-center justify-center rounded-2xl bg-primary text-primary-foreground px-4 py-3 text-sm font-semibold"
+                        >
+                          View Opportunity
+                        </button>
+                        <a
+                          href={item.officialUrl}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex-1 inline-flex items-center justify-center rounded-2xl bg-foreground px-4 py-3 text-sm font-semibold text-background"
+                        >
+                          Apply now
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Other opportunities */}
+            {results.filter((r: any) => !r.isOccupationRelevant).length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-muted-foreground">Other Opportunities</h3>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {results.filter((r: any) => !r.isOccupationRelevant).map((item: any) => (
+                    <div
+                      key={item.id}
+                      className="rounded-3xl border border-border bg-card p-6 shadow-sm cursor-pointer hover:border-primary/50 transition-colors"
+                      onClick={() =>
+                        navigate({
+                          to: "/opportunities/$id",
+                          params: { id: item.id },
+                        })
+                      }
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{item.category}</p>
+                          <h3 className="mt-2 text-xl font-semibold">{item.name}</h3>
+                        </div>
+                        <div className={`rounded-full px-4 py-2 text-sm font-semibold ${item.calculatedScore >= 80 ? 'bg-green-100 text-green-700' : item.calculatedScore >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                          {item.calculatedScore}% Match
+                        </div>
+                      </div>
+
+                      <p className="mt-4 text-sm text-muted-foreground leading-6">{item.description}</p>
+
+                      <div className="mt-3 space-y-2">
+                        <p className="text-green-600 font-semibold">{item.benefit}</p>
+                        <p className="text-sm text-muted-foreground">{item.benefitDetail}</p>
+                      </div>
+
+                      <div className="mt-3">
+                        <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1">Deadline</p>
+                        <p className={`text-sm font-semibold ${item.deadline === 'Rolling' ? 'text-green-600' : 'text-orange-600'}`}>
+                          {item.deadline}
+                        </p>
+                      </div>
+
+                      {item.isEligible && item.reasons.length > 0 && (
+                        <div className="mt-4 p-3 bg-green-50 rounded-xl">
+                          <p className="text-xs font-mono uppercase tracking-widest text-green-700 mb-2">Why Eligible</p>
+                          <ul className="space-y-1">
+                            {item.reasons.map((reason: string, idx: number) => (
+                              <li key={idx} className="text-sm text-green-700 flex items-center gap-2">
+                                ✓ {reason}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {!item.isEligible && item.failures.length > 0 && (
+                        <div className="mt-4 p-3 bg-red-50 rounded-xl">
+                          <p className="text-xs font-mono uppercase tracking-widest text-red-700 mb-2">Why Not Eligible</p>
+                          <ul className="space-y-1">
+                            {item.failures.map((failure: string, idx: number) => (
+                              <li key={idx} className="text-sm text-red-700 flex items-center gap-2">
+                                ✗ {failure}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      <div className="mt-4">
+                        <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-2">Required Documents</p>
+                        <div className="flex flex-wrap gap-2">
+                          {item.documents.map((doc: string, idx: number) => (
+                            <span key={idx} className="px-2 py-1 bg-muted rounded-full text-xs">
+                              {doc}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="mt-6 flex gap-3">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({
+                              to: "/opportunities/$id",
+                              params: { id: item.id },
+                            });
+                          }}
+                          className="flex-1 inline-flex items-center justify-center rounded-2xl bg-primary text-primary-foreground px-4 py-3 text-sm font-semibold"
+                        >
+                          View Opportunity
+                        </button>
+                        <a
+                          href={item.officialUrl}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex-1 inline-flex items-center justify-center rounded-2xl bg-foreground px-4 py-3 text-sm font-semibold text-background"
+                        >
+                          Apply now
+                        </a>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
           </div>
-        )}
-
-        {isLoading && (
-          <div className="rounded-3xl bg-card ring-1 ring-black/5 p-6 animate-pulse">
-            <div className="h-6 w-2/5 rounded-full bg-muted mb-5" />
-            <div className="grid gap-4 md:grid-cols-2">
-              {[...Array(2)].map((_, index) => (
-                <div key={index} className="space-y-3 rounded-3xl border border-border p-5 bg-background">
-                  <div className="h-4 w-1/2 rounded-full bg-muted" />
-                  <div className="h-3 w-3/4 rounded-full bg-muted" />
-                  <div className="h-10 rounded-2xl bg-muted" />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {analysis && (
-          <section className="space-y-6">
-            <div className="rounded-3xl bg-card ring-1 ring-black/5 p-6">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="text-xs font-mono uppercase tracking-widest text-primary">AI eligibility score</p>
-                  <h2 className="mt-2 text-3xl font-semibold">{analysis.matchScore}% match</h2>
-                  <p className="text-sm text-muted-foreground mt-2">{analysis.explanation}</p>
-                </div>
-                <div className="rounded-3xl bg-primary/10 border border-primary/20 px-5 py-4 text-center">
-                  <p className="text-4xl font-extrabold text-primary">{analysis.matchScore}%</p>
-                  <p className="text-xs uppercase tracking-widest text-primary/80">Profile alignment</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              {analysis.opportunities.map((scheme) => (
-                <div key={scheme.schemeName} className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{scheme.schemeName}</p>
-                      <h3 className="mt-2 text-xl font-semibold">{scheme.benefitAmount}</h3>
-                    </div>
-                    <div className="rounded-full bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">{scheme.matchScore}%</div>
-                  </div>
-                  <p className="mt-4 text-sm text-muted-foreground leading-6">{scheme.whyEligible}</p>
-                  <a
-                    href={scheme.officialApplyLink}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="mt-6 inline-flex items-center justify-center rounded-2xl bg-foreground px-4 py-3 text-sm font-semibold text-background"
-                  >
-                    Apply now
-                  </a>
-                </div>
-              ))}
-            </div>
-          </section>
         )}
 
         <EligibilityResultDialog

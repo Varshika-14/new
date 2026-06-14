@@ -154,34 +154,37 @@ function Dashboard() {
 
         {/* Recommended */}
         <section>
-          <div className="flex items-end justify-between mb-4">
-            <h2 className="text-xl font-bold">Recommended Opportunities</h2>
-            <Link to="/opportunities" className="text-sm font-semibold text-primary inline-flex items-center gap-1">
-              See all <ArrowRight className="size-3" />
+          <div className="flex items-end justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold">Recommended Opportunities</h2>
+              <p className="text-sm text-muted-foreground mt-1">Personalized based on your profile</p>
+            </div>
+            <Link to="/opportunities" className="text-sm font-semibold text-primary inline-flex items-center gap-1 hover:underline">
+              View all opportunities <ArrowRight className="size-4" />
             </Link>
           </div>
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-3 gap-5">
             {top.map((o) => (
               <Link
                 key={o.id}
                 to="/opportunities/$id"
                 params={{ id: o.id }}
-                className="block rounded-2xl bg-card ring-1 ring-black/5 p-6 hover:ring-primary/30 hover:-translate-y-0.5 transition-all"
+                className="group block rounded-2xl bg-gradient-to-br from-card to-card/80 ring-1 ring-black/5 p-6 hover:ring-2 hover:ring-primary/40 hover:shadow-xl hover:shadow-primary/10 transition-all duration-300"
               >
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-primary font-bold">{o.category}</span>
-                  <span className="px-2 py-0.5 bg-success/10 text-success text-[10px] font-bold rounded uppercase">{o.match}% match</span>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-primary font-semibold bg-primary/5 px-2 py-1 rounded-md">{o.category}</span>
+                  <span className="px-2.5 py-1 bg-gradient-to-r from-success/20 to-success/10 text-success text-[11px] font-bold rounded-full uppercase tracking-wide border border-success/20">{o.match}% match</span>
                 </div>
-                <h3 className="font-bold leading-snug mb-2">{o.name}</h3>
-                <p className="text-xs text-muted-foreground">{o.ministry}</p>
-                <div className="mt-4 pt-4 border-t border-border text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Benefit</span>
-                    <span className="font-semibold">{o.benefit}</span>
+                <h3 className="font-bold text-lg leading-snug mb-3 group-hover:text-primary transition-colors">{o.name}</h3>
+                <p className="text-sm text-muted-foreground mb-4">{o.ministry}</p>
+                <div className="space-y-2.5 pt-4 border-t border-border/50">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground font-medium">Benefit</span>
+                    <span className="text-xs font-semibold text-foreground">{o.benefit}</span>
                   </div>
-                  <div className="flex justify-between mt-1">
-                    <span className="text-muted-foreground">Deadline</span>
-                    <span className="font-semibold">{o.deadline}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground font-medium">Deadline</span>
+                    <span className="text-xs font-semibold text-foreground">{o.deadline}</span>
                   </div>
                 </div>
               </Link>
